@@ -1,4 +1,3 @@
-# affine-gap-alignment
+# gotoh-algorithm
 
-An implementation of the affine gap alignment algorithm.
-
+An implementation of the Gotoh affine-gap alignment algorithm.
