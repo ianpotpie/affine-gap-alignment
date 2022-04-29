@@ -6,7 +6,7 @@ from scoring_scheme import ScoringScheme
 
 def global_alignment(seq1: str, seq2: str, scoring_scheme):
     """
-    The Gotoh algorithm can be used to perform global alignment according to the provided scoring scheme.
+    Uses the Gotoh algorithm to perform global alignment with affine gap scoring.
 
     :param seq1: the first sequence to align
     :param seq2: the second sequence to align
@@ -36,7 +36,9 @@ def global_alignment(seq1: str, seq2: str, scoring_scheme):
     # populate the dynamic programming matrix
     for i in range(1, max_i + 1):
         for j in range(1, max_j + 1):
-            M[i, j] = max(M[i - 1, j - 1], X[i - 1, j - 1], Y[i - 1, j - 1]) + scoring_scheme(seq1[i - 1], seq2[j - 1])
+            M[i, j] = max(M[i - 1, j - 1],
+                          X[i - 1, j - 1],
+                          Y[i - 1, j - 1]) + scoring_scheme(seq1[i - 1], seq2[j - 1])
 
             X[i, j] = max(M[i, j - 1] + gap_open + gap_extend,
                           X[i, j - 1] + gap_extend,
@@ -103,7 +105,8 @@ def global_alignment(seq1: str, seq2: str, scoring_scheme):
 
 def semiglobal_alignment(seq1: str, seq2: str, scoring_scheme):
     """
-    The Gotoh algorithm can be used to perform semi-global alignment according to the provided scoring scheme.
+    Uses the Gotoh algorithm to perform semi-global alignment with affine gap scoring.
+    This is global alignment where any gaps in the prefix or suffix do not contribute to the score.
 
     :param seq1: the first sequence to align
     :param seq2: the second sequence to align
@@ -133,7 +136,9 @@ def semiglobal_alignment(seq1: str, seq2: str, scoring_scheme):
     # populate the dynamic programming matrix
     for i in range(1, max_i + 1):
         for j in range(1, max_j + 1):
-            M[i, j] = max(M[i - 1, j - 1], X[i - 1, j - 1], Y[i - 1, j - 1]) + scoring_scheme(seq1[i - 1], seq2[j - 1])
+            M[i, j] = max(M[i - 1, j - 1],
+                          X[i - 1, j - 1],
+                          Y[i - 1, j - 1]) + scoring_scheme(seq1[i - 1], seq2[j - 1])
 
             if i < max_i:
                 X[i, j] = max(M[i, j - 1] + gap_open + gap_extend,
@@ -206,7 +211,7 @@ def semiglobal_alignment(seq1: str, seq2: str, scoring_scheme):
 
 def local_alignment(seq1: str, seq2: str, scoring_scheme):
     """
-    The Gotoh algorithm can be used to perform local alignment according to the provided scoring scheme.
+    Uses the Gotoh algorithm to perform local alignment with affine gap scoring.
 
     :param seq1: the first sequence to align
     :param seq2: the second sequence to align
@@ -303,21 +308,15 @@ def local_alignment(seq1: str, seq2: str, scoring_scheme):
 
 def main():
     parser = argparse.ArgumentParser(description="Align two sequences.")
-    parser.add_argument("sequence1", type=str)
-    parser.add_argument("sequence2", type=str)
-    parser.add_argument("--gap-open", type=float, default=-2)
+    parser.add_argument("seq1", type=str)
+    parser.add_argument("seq2", type=str)
+    parser.add_argument("--gap-open", type=float, default=0)
     parser.add_argument("--gap", type=float, default=-1)
     parser.add_argument("--match", type=float, default=1)
     parser.add_argument("--mismatch", type=float, default=-1)
     parser.add_argument("--matrix", type=str)
     parser.add_argument("--type", choices=["global", "local", "semiglobal"], type=str, default="global")
     args = parser.parse_args(sys.argv[1:])
-
-    # the first sequence to align
-    sequence1 = args.sequence1
-
-    # the second sequence to align
-    sequence2 = args.sequence2
 
     # create a scoring scheme
     scoring_scheme = ScoringScheme()
@@ -328,31 +327,30 @@ def main():
     if args.matrix is not None:
         scoring_scheme.load_matrix(args.matrix)
 
-    wall_width = 33
+    # determine which alignment to perform
     if args.type == "local":
-        max_score, alignments = local_alignment(sequence1, sequence2, scoring_scheme)
-        print("Gotoh Affine-Gap Local Alignment")
-        wall_width = 32
+        max_score, alignments = local_alignment(args.seq1, args.seq2, scoring_scheme)
+        title = "Gotoh Affine-Gap Local Alignment"
     elif args.type == "semiglobal":
-        max_score, alignments = semiglobal_alignment(sequence1, sequence2, scoring_scheme)
-        print("Gotoh Affine-Gap Semi-Global Alignment")
-        wall_width = 38
+        max_score, alignments = semiglobal_alignment(args.seq1, args.seq2, scoring_scheme)
+        title = "Gotoh Affine-Gap Semi-Global Alignment"
     else:  # args.type == "global":
-        max_score, alignments = global_alignment(sequence1, sequence2, scoring_scheme)
-        print("Gotoh Affine-Gap Global Alignment")
-        wall_width = 33
+        max_score, alignments = global_alignment(args.seq1, args.seq2, scoring_scheme)
+        title = "Gotoh Affine-Gap Global Alignment"
 
-    print(wall_width * "-")
-    print(f"Sequence 1: {sequence1}")
-    print(f"Sequence 2: {sequence2}")
+    # display alignment results
+    print(title)
+    print(len(title) * "-")
+    print(f"Sequence 1: {args.seq1}")
+    print(f"Sequence 2: {args.seq2}")
     print(f"Optimal Alignment Score: {max_score}")
     print()
     print("Optimal Alignments:")
-    print(wall_width * "-")
+    print(len(title) * "-")
     for i, alignment in enumerate(alignments):
         print(alignment[0])
         print(alignment[1])
-        print(wall_width * "-")
+        print(len(title) * "-")
 
 
 if __name__ == "__main__":
