@@ -2,11 +2,11 @@ import numpy as np
 
 
 class ScoringScheme:
-    def __init__(self, match=1.0, mismatch=-1.0, gap=-1.0, gap_start=0.0, semi_global=False):
+    def __init__(self, match=1.0, mismatch=-1.0, gap=-1.0, gap_open=0.0, semi_global=False):
         self.match = match
         self.mismatch = mismatch
         self.gap = gap
-        self.gap_start = gap_start
+        self.gap_open = gap_open
         self.semi_global = semi_global
         self.symbol_to_index = None
         self.scoring_matrix = None
@@ -50,11 +50,11 @@ class ScoringScheme:
 
             elif symbol1 == "-":
                 score += self.gap
-                score += self.gap_start if (i > 0) and seq1[i - 1] != "-" else 0.0
+                score += self.gap_open if (i > 0) and seq1[i - 1] != "-" else 0.0
 
             elif symbol2 == "-":
                 score += self.gap
-                score += self.gap_start if (i > 0) and seq2[i - 1] != "-" else 0.0
+                score += self.gap_open if (i > 0) and seq2[i - 1] != "-" else 0.0
 
             elif self.scoring_matrix is not None:
                 if (symbol1 not in self.symbol_to_index) or (symbol2 not in self.symbol_to_index):
