@@ -26,35 +26,37 @@ class ScoringScheme:
                 symbols[index] = symbol
             return list(symbols)
 
-    def score(self, seq1: str, seq2: str):
+    def score(self, alignment1: str, alignment2: str):
         """
         Scores the alignment of two sequences based on their symbol-by-symbol scores going left-to-right.
         The method expects alignments to be the same length.
         It will quietly stop evaluating the score at the end of the shorter alignment.
 
-        :param seq1: the first sequence in the alignment to score
-        :param seq2: the second sequence in the alignment to score
+        :param alignment1: the first sequence in the alignment to score
+        :param alignment2: the second sequence in the alignment to score
         :return: the score of the alignment
         """
         if self.semi_global:
-            seq1, seq2 = seq1.lstrip("-"), seq2.lstrip("-")  # disregard gaps at the beginning
-            seq1, seq2 = seq1[-min(len(seq1), len(seq2)):], seq2[-min(len(seq1), len(seq2)):]
-            seq1, seq2 = seq1.rstrip("-"), seq2.rstrip("-")  # disregard gaps at the end
-            seq1, seq2 = seq1[:min(len(seq1), len(seq2))], seq2[:min(len(seq1), len(seq2))]
+            alignment1, alignment2 = alignment1.lstrip("-"), alignment2.lstrip("-")  # disregard gaps at the beginning
+            alignment1, alignment2 = alignment1[-min(len(alignment1), len(alignment2)):], \
+                                     alignment2[-min(len(alignment1), len(alignment2)):]
+            alignment1, alignment2 = alignment1.rstrip("-"), alignment2.rstrip("-")  # disregard gaps at the end
+            alignment1, alignment2 = alignment1[:min(len(alignment1), len(alignment2))], \
+                                     alignment2[:min(len(alignment1), len(alignment2))]
 
         score = 0.0
-        for i, (symbol1, symbol2) in enumerate(zip(seq1, seq2)):
+        for i, (symbol1, symbol2) in enumerate(zip(alignment1, alignment2)):
 
             if symbol1 == "-" and symbol2 == "-":
                 raise ValueError("Encountered alignment between two gaps")
 
             elif symbol1 == "-":
                 score += self.gap
-                score += self.gap_open if (i > 0) and seq1[i - 1] != "-" else 0.0
+                score += self.gap_open if (i > 0) and alignment1[i - 1] != "-" else 0.0
 
             elif symbol2 == "-":
                 score += self.gap
-                score += self.gap_open if (i > 0) and seq2[i - 1] != "-" else 0.0
+                score += self.gap_open if (i > 0) and alignment2[i - 1] != "-" else 0.0
 
             elif self.scoring_matrix is not None:
                 if (symbol1 not in self.symbol_to_index) or (symbol2 not in self.symbol_to_index):
@@ -67,16 +69,16 @@ class ScoringScheme:
 
         return score
 
-    def __call__(self, seq1, seq2):
+    def __call__(self, alignment1, alignment2):
         """
         Calling the scoring scheme will score the two sequences passed in.
         You can find the behavior of the scoring in the "score" method.
 
-        :param seq1: the first sequence in the alignment to score
-        :param seq2: the second sequence in the alignment to score
+        :param alignment1: the first sequence in the alignment to score
+        :param alignment2: the second sequence in the alignment to score
         :return: the score of the alignment
         """
-        return self.score(seq1, seq2)
+        return self.score(alignment1, alignment2)
 
     def load_matrix(self, filename):
         """
@@ -111,10 +113,10 @@ class ScoringScheme:
         if self.scoring_matrix is None:
             s = f"Match Score: {self.match}\n" + \
                 f"Mismatch Penalty: {self.mismatch}\n" + \
-                f"Gap Start Penalty: {self.gap_start}\n" + \
+                f"Gap Start Penalty: {self.gap_open}\n" + \
                 f"Gap Extension Penalty: {self.gap}"
         else:
-            s = f"# Gap Start Penalty: {self.gap_start}\n" + \
+            s = f"# Gap Start Penalty: {self.gap_open}\n" + \
                 f"# Gap Extension Penalty: {self.gap}\n"
 
             symbols = self.get_symbols()
