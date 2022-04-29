@@ -2,11 +2,12 @@ import numpy as np
 
 
 class ScoringScheme:
-    def __init__(self, match_score=1.0, mismatch_penalty=-1.0, gap_penalty=-1.0, gap_start_penalty=0.0):
-        self.match_score = match_score
-        self.mismatch_penalty = mismatch_penalty
-        self.gap_penalty = gap_penalty
-        self.gap_start_penalty = gap_start_penalty
+    def __init__(self, match=1.0, mismatch=-1.0, gap=-1.0, gap_start=0.0, semi_global=False):
+        self.match = match
+        self.mismatch = mismatch
+        self.gap = gap
+        self.gap_start = gap_start
+        self.semi_global = semi_global
         self.symbol_to_index = None
         self.scoring_matrix = None
 
@@ -25,51 +26,57 @@ class ScoringScheme:
                 symbols[index] = symbol
             return list(symbols)
 
-    def score(self, sequence1, sequence2):
+    def score(self, seq1: str, seq2: str):
         """
         Scores the alignment of two sequences based on their symbol-by-symbol scores going left-to-right.
         The method expects alignments to be the same length.
         It will quietly stop evaluating the score at the end of the shorter alignment.
 
-        :param sequence1: the first sequence in the alignment to score
-        :param sequence2: the second sequence in the alignment to score
+        :param seq1: the first sequence in the alignment to score
+        :param seq2: the second sequence in the alignment to score
         :return: the score of the alignment
         """
+        if self.semi_global:
+            seq1, seq2 = seq1.lstrip("-"), seq2.lstrip("-")  # disregard gaps at the beginning
+            seq1, seq2 = seq1[-min(len(seq1), len(seq2)):], seq2[-min(len(seq1), len(seq2)):]
+            seq1, seq2 = seq1.rstrip("-"), seq2.rstrip("-")  # disregard gaps at the end
+            seq1, seq2 = seq1[:min(len(seq1), len(seq2))], seq2[:min(len(seq1), len(seq2))]
+
         score = 0.0
-        for i, (symbol1, symbol2) in enumerate(zip(sequence1, sequence2)):
+        for i, (symbol1, symbol2) in enumerate(zip(seq1, seq2)):
 
             if symbol1 == "-" and symbol2 == "-":
                 raise ValueError("Encountered alignment between two gaps")
 
             elif symbol1 == "-":
-                score += self.gap_penalty
-                score += self.gap_start_penalty if (i > 0) and sequence1[i - 1] != "-" else 0.0
+                score += self.gap
+                score += self.gap_start if (i > 0) and seq1[i - 1] != "-" else 0.0
 
             elif symbol2 == "-":
-                score += self.gap_penalty
-                score += self.gap_start_penalty if (i > 0) and sequence2[i - 1] != "-" else 0.0
+                score += self.gap
+                score += self.gap_start if (i > 0) and seq2[i - 1] != "-" else 0.0
 
             elif self.scoring_matrix is not None:
-                assert symbol1 in self.symbol_to_index, "Encountered symbol not in the current scoring matrix"
-                assert symbol2 in self.symbol_to_index, "Encountered symbol not in the current scoring matrix"
+                if (symbol1 not in self.symbol_to_index) or (symbol2 not in self.symbol_to_index):
+                    raise ValueError("Encountered a symbol not in the scoring matrix")
                 row = self.symbol_to_index[symbol1]
                 col = self.symbol_to_index[symbol2]
                 score += self.scoring_matrix[row][col]
             else:
-                score += self.match_score if symbol1 == symbol2 else self.mismatch_penalty
+                score += self.match if symbol1 == symbol2 else self.mismatch
 
         return score
 
-    def __call__(self, sequence1, sequence2):
+    def __call__(self, seq1, seq2):
         """
         Calling the scoring scheme will score the two sequences passed in.
         You can find the behavior of the scoring in the "score" method.
 
-        :param sequence1: the first sequence in the alignment to score
-        :param sequence2: the second sequence in the alignment to score
+        :param seq1: the first sequence in the alignment to score
+        :param seq2: the second sequence in the alignment to score
         :return: the score of the alignment
         """
-        return self.score(sequence1, sequence2)
+        return self.score(seq1, seq2)
 
     def load_matrix(self, filename):
         """
@@ -102,13 +109,13 @@ class ScoringScheme:
         :return: a string of the scoring scheme
         """
         if self.scoring_matrix is None:
-            s = f"Match Score: {self.match_score}\n" + \
-                f"Mismatch Penalty: {self.mismatch_penalty}\n" + \
-                f"Gap Start Penalty: {self.gap_start_penalty}\n" + \
-                f"Gap Extension Penalty: {self.gap_penalty}"
+            s = f"Match Score: {self.match}\n" + \
+                f"Mismatch Penalty: {self.mismatch}\n" + \
+                f"Gap Start Penalty: {self.gap_start}\n" + \
+                f"Gap Extension Penalty: {self.gap}"
         else:
-            s = f"# Gap Start Penalty: {self.gap_start_penalty}\n" + \
-                f"# Gap Extension Penalty: {self.gap_penalty}\n"
+            s = f"# Gap Start Penalty: {self.gap_start}\n" + \
+                f"# Gap Extension Penalty: {self.gap}\n"
 
             symbols = self.get_symbols()
             s += "   " + "  ".join(symbols)
